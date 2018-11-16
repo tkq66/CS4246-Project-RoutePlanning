@@ -185,6 +185,13 @@ class SimulationSetting(QWidget):
         mdp_policy = mdp_planner.policy
         driver_policy = mdp_policy[driver["index"]]
         action = Actions(driver_policy)
+        ideal_dest = {
+            "col": driver["col"] + 1 if action is Actions.EAST and driver["col"] != (col_count - 1) else driver["col"] - 1 if action is Actions.WEST and driver["col"] != 0 else driver["col"],
+            "row": driver["row"] + 1 if action is Actions.SOUTH and driver["row"] != (row_count - 1) else driver["row"] - 1 if action is Actions.NORTH and driver["row"] != 0 else driver["row"]
+        }
+        ideal_dest_index = (row_count * ideal_dest["row"]) + ideal_dest["col"]
+        action_prob = P[action.value, driver["index"], ideal_dest_index]
+        policy_succeed = np.random.choice([0,1], 1, p=[1 - action_prob, action_prob])[0]
         self.simulation_detail = {
             "action": action,
             "source": {
@@ -193,11 +200,11 @@ class SimulationSetting(QWidget):
                 "index": driver["index"]
             },
             "dest": {
-                "col": driver["col"] + 1 if action is Actions.EAST and driver["col"] != (col_count - 1) else driver["col"] - 1 if action is Actions.WEST and driver["col"] != 0 else driver["col"],
-                "row": driver["row"] + 1 if action is Actions.SOUTH and driver["row"] != (row_count - 1) else driver["row"] - 1 if action is Actions.NORTH and driver["row"] != 0 else driver["row"]
+                "col": ideal_dest["col"] if policy_succeed else driver["col"],
+                "row":ideal_dest["row"] if policy_succeed else driver["row"],
+                "index": ideal_dest_index if policy_succeed else driver["index"]
             }
         }
-        self.simulation_detail["dest"]["index"] = (row_count * self.simulation_detail["dest"]["row"]) + self.simulation_detail["dest"]["col"]
         
         self.steps = self.steps + 1
         self.stepsCounter.setText(str(self.steps))
